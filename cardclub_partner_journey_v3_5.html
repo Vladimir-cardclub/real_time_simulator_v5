@@ -1,0 +1,2824 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Путь партнёра Card.Club — симулятор v3.5</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap');
+
+  :root {
+    /* Точные цвета из реального кабинета cross.card.club */
+    --primary: #80BD1C;
+    --primary-dark: #679915;
+    --primary-darker: #527E0A;
+    --primary-light: #A9D557;
+    --primary-lighter: #C7E979;
+    --primary-lightest: #F4FAE7;
+    --primary-8: rgba(128, 189, 28, 0.08);
+    --primary-20: rgba(128, 189, 28, 0.2);
+
+    --bg: #FAFBFC;
+    --bg-card: #FFFFFF;
+    --bg-tertiary: #F6F6F6;
+
+    --gray-100: #EEF1F3;
+    --gray-200: #D9DEE2;
+    --gray-300: #BFC6CC;
+    --gray-400: #A9B2B9;
+    --gray-500: #919BA3;
+    --gray-600: #7B858F;
+    --gray-700: #5E6A74;
+    --gray-800: #434D56;
+    --gray-900: #232C34;
+
+    --text: #1A2128;
+    --text-secondary: #434D56;
+    --text-tertiary: #A9B2B9;
+
+    /* Тёмные секции для эмоционального контраста */
+    --dark-bg: #0F1417;
+    --dark-bg-2: #1A2128;
+    --dark-card: #232C34;
+    --dark-text: #F4FAE7;
+    --dark-text-dim: #A9B2B9;
+    --gold: #FFC226;
+    --gold-soft: #CC9D24;
+    --accent-warning: #FF6B6B;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow: 0 2px 8px rgba(26, 33, 40, 0.06);
+    --shadow-lg: 0 8px 32px rgba(26, 33, 40, 0.1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { overflow-x: hidden; }
+
+  body {
+    font-family: 'Open Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+
+  /* ============ ОБЩИЙ LAYOUT — кабинет ============ */
+  .app {
+    display: grid;
+    grid-template-columns: 220px 1fr 320px;
+    min-height: 100vh;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* ============ LEFT SIDEBAR (как в реальном ЛК) ============ */
+  .sidebar {
+    background: var(--bg-card);
+    border-right: 1px solid var(--gray-100);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px 24px;
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  .sidebar-logo-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 800;
+    font-size: 14px;
+    position: relative;
+  }
+  .sidebar-logo-circle::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border-radius: 50%;
+    background: var(--bg-card);
+  }
+  .sidebar-logo-circle::after {
+    content: "";
+    position: absolute;
+    inset: 9px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .sidebar-item:hover { background: var(--primary-8); color: var(--primary-dark); }
+  .sidebar-item.active {
+    background: var(--primary-lightest);
+    color: var(--primary-dark);
+    border-color: var(--primary-20);
+  }
+  .sidebar-item.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .sidebar-icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+  /* ============ MAIN ============ */
+  .main {
+    padding: 32px 40px 60px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .main-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .main-lang {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+  }
+
+  /* ============ RIGHT PANEL (профиль с роботом) ============ */
+  .right-panel {
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .user-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+
+  .avatar-wrapper { position: relative; width: 120px; height: 120px; margin: 0 auto 16px; }
+  .avatar-progress { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .avatar-bg-circle {
+    fill: none;
+    stroke: var(--gray-100);
+    stroke-width: 8;
+  }
+  .avatar-progress-circle {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 314;
+    stroke-dashoffset: 314;
+    transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .avatar-inner {
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    background: var(--primary-lighter);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: transform 0.3s;
+  }
+  .avatar-inner.pulse { animation: avatarPulse 0.6s ease; }
+  @keyframes avatarPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); box-shadow: 0 0 0 8px var(--primary-20); }
+  }
+  .avatar-emoji { font-size: 56px; }
+
+  .user-name { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .user-email { font-size: 13px; color: var(--text-tertiary); margin-bottom: 16px; }
+
+  .user-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .user-stat { text-align: left; display: flex; align-items: center; gap: 10px; }
+  .user-stat-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary-lightest);
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+    transition: all 0.4s;
+  }
+  .user-stat-circle.bumped {
+    animation: statBump 0.6s ease;
+    background: var(--primary);
+    color: white;
+  }
+  @keyframes statBump {
+    0%, 100% { transform: scale(1); }
+    40% { transform: scale(1.3); }
+  }
+  .user-stat-label { font-size: 11px; color: var(--text-tertiary); line-height: 1.3; }
+
+  .withdraw-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .withdraw-btn:hover { background: var(--primary-dark); }
+  .withdraw-btn:disabled { opacity: 0.5; cursor: not-allowed; background: var(--gray-300); }
+
+  /* Achievements card */
+  .achievements-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .achievements-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .ach-counter { font-size: 11px; color: var(--text-tertiary); font-weight: 600; }
+  .achievement {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    border-bottom: 1px dashed var(--gray-100);
+    transition: color 0.3s;
+  }
+  .achievement:last-child { border-bottom: none; }
+  .achievement.unlocked { color: var(--text); }
+  .achievement-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    transition: all 0.4s;
+  }
+  .achievement.unlocked .achievement-icon {
+    background: var(--primary);
+    color: white;
+  }
+  .achievement.unlocked .achievement-icon::after { content: "✓"; }
+
+  /* ============ КАРТОЧКА ОБЩАЯ ============ */
+  .card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 22px; font-weight: 800; margin-bottom: 12px; }
+  .card .lead { color: var(--text-secondary); font-size: 15px; margin-bottom: 20px; }
+
+  /* ============ КНОПКИ ============ */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+  .btn-primary:disabled { background: var(--gray-300); cursor: not-allowed; transform: none; }
+  .btn-outline {
+    background: transparent;
+    color: var(--primary-dark);
+    border-color: var(--primary);
+  }
+  .btn-outline:hover { background: var(--primary-lightest); }
+  .btn-ghost { background: transparent; color: var(--text-secondary); }
+  .btn-ghost:hover { color: var(--text); }
+  .btn-large { padding: 16px 32px; font-size: 16px; }
+  .btn-pulse { position: relative; }
+  .btn-pulse::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 14px;
+    border: 2px solid var(--primary);
+    animation: btnPulse 1.6s ease infinite;
+  }
+  @keyframes btnPulse {
+    0% { opacity: 0.6; transform: scale(1); }
+    70% { opacity: 0; transform: scale(1.08); }
+    100% { opacity: 0; transform: scale(1.08); }
+  }
+
+  /* ============ EКРАНЫ ============ */
+  .screen { display: none; animation: fadeIn 0.4s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ ЭКРАН 1: HERO (тёмная секция) ============ */
+  .hero {
+    background: linear-gradient(135deg, var(--dark-bg) 0%, var(--dark-bg-2) 100%);
+    color: var(--dark-text);
+    border-radius: 24px;
+    padding: 64px 48px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, var(--primary-20), transparent 70%);
+    top: -100px; right: -100px;
+    pointer-events: none;
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(255, 194, 38, 0.1), transparent 70%);
+    bottom: -80px; left: -80px;
+    pointer-events: none;
+  }
+  .hero-label {
+    display: inline-block;
+    background: var(--primary-20);
+    color: var(--primary-light);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
+  }
+  .hero h1 {
+    font-size: 44px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .hero h1 .accent { color: var(--primary-light); }
+  .hero p {
+    font-size: 17px;
+    color: var(--dark-text-dim);
+    margin-bottom: 32px;
+    max-width: 600px;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-stats {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 32px;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-stat-num {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--primary-light);
+    line-height: 1;
+  }
+  .hero-stat-label {
+    font-size: 12px;
+    color: var(--dark-text-dim);
+    text-transform: uppercase;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ============ ЭКРАН 2: РАЗВИЛКА ============ */
+  .fork-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .fork-card {
+    background: var(--bg-card);
+    border: 2px solid var(--gray-100);
+    border-radius: 16px;
+    padding: 32px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+  }
+  .fork-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+  .fork-card.recommended { border-color: var(--primary-20); background: var(--primary-lightest); }
+  .fork-card.recommended::before {
+    content: "Рекомендуем";
+    position: absolute;
+    top: -10px; right: 16px;
+    background: var(--primary);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .fork-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+  .fork-card h3 {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .fork-card p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+  }
+  .fork-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .fork-tag {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--gray-200);
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  /* ============ ЭКРАН 3: ЛАЙФСТАЙЛ (тёмная секция) ============ */
+  .lifestyle {
+    background: linear-gradient(180deg, #0F1417 0%, #1A2128 100%);
+    color: var(--dark-text);
+    border-radius: 24px;
+    padding: 40px;
+    margin-bottom: 16px;
+  }
+  .lifestyle h2 { color: var(--dark-text); }
+  .lifestyle-lead { color: var(--dark-text-dim); margin-bottom: 32px; font-size: 15px; }
+
+  .scenarios {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .scenario {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(199, 233, 121, 0.15);
+    border-radius: 16px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+  }
+  .scenario:hover {
+    background: rgba(199, 233, 121, 0.08);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+  }
+  .scenario.completed {
+    background: rgba(128, 189, 28, 0.12);
+    border-color: var(--primary);
+  }
+  .scenario.completed::before {
+    content: "✓";
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .scenario-logo {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 12px;
+    background: rgba(199, 233, 121, 0.1);
+  }
+  .scenario h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; color: var(--dark-text); }
+  .scenario .price { color: var(--primary-light); font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .scenario .desc { font-size: 12px; color: var(--dark-text-dim); line-height: 1.5; }
+
+  /* Симуляция оплаты */
+  .pay-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .pay-modal.active { display: flex; }
+  .pay-modal-content {
+    background: var(--bg-card);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    animation: modalIn 0.3s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .pay-card-visual {
+    width: 200px;
+    height: 130px;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-radius: 16px;
+    padding: 20px;
+    color: white;
+    text-align: left;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(128, 189, 28, 0.3);
+  }
+  .pay-card-logo {
+    font-weight: 800;
+    font-size: 16px;
+    margin-bottom: 36px;
+  }
+  .pay-card-num {
+    font-family: 'Open Sans', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    opacity: 0.9;
+  }
+  .pay-status {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+  .pay-amount {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    margin-bottom: 4px;
+  }
+  .pay-merchant { font-size: 13px; color: var(--text-tertiary); margin-bottom: 24px; }
+  .pay-progress {
+    height: 4px;
+    background: var(--gray-100);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .pay-progress-fill {
+    height: 100%;
+    background: var(--primary);
+    width: 0%;
+    transition: width 1.4s ease;
+  }
+  .pay-success {
+    color: var(--primary-dark);
+    font-weight: 700;
+    font-size: 15px;
+    display: none;
+  }
+  .pay-success.visible { display: block; animation: fadeIn 0.4s ease; }
+
+  /* ============ ЭКРАН 4: СЕГМЕНТ ============ */
+  .segments {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .segment {
+    background: var(--bg-card);
+    border: 2px solid var(--gray-100);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .segment:hover { border-color: var(--primary-light); }
+  .segment.selected {
+    border-color: var(--primary);
+    background: var(--primary-lightest);
+  }
+  .segment-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--primary-lightest);
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+  .segment.selected .segment-icon { background: var(--primary); color: white; }
+  .segment-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .segment-desc { font-size: 12px; color: var(--text-tertiary); }
+
+  /* ============ ЭКРАН 5: АКТИВЫ (слайдер) ============ */
+  .asset-block { padding: 16px 0; }
+  .asset-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .asset-label { font-weight: 600; font-size: 14px; }
+  .asset-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--primary-dark);
+  }
+  .slider {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--gray-100);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px; height: 20px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 2px 6px rgba(128, 189, 28, 0.4);
+  }
+  .slider::-moz-range-thumb {
+    width: 20px; height: 20px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 2px 6px rgba(128, 189, 28, 0.4);
+  }
+  .slider-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 6px;
+  }
+
+  .tam-block {
+    background: var(--primary-lightest);
+    border: 1px solid var(--primary-20);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 24px;
+  }
+  .tam-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+  .tam-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--primary-dark);
+  }
+  .tam-detail { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+
+  /* ============ ЭКРАН 6: ПРОКАЧКА КАБИНЕТА ============ */
+  .setup-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .setup-step {
+    background: var(--bg-card);
+    border: 1px solid var(--gray-100);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.25s;
+  }
+  .setup-step.completed {
+    background: var(--primary-lightest);
+    border-color: var(--primary-20);
+  }
+  .setup-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--gray-100);
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    transition: all 0.3s;
+  }
+  .setup-step.completed .setup-num {
+    background: var(--primary);
+    color: white;
+  }
+  .setup-step.completed .setup-num::after { content: "✓"; }
+  .setup-step.completed .setup-num span { display: none; }
+  .setup-text { font-size: 14px; }
+  .setup-text strong { display: block; margin-bottom: 2px; }
+  .setup-text small { color: var(--text-tertiary); font-size: 12px; }
+  .setup-action { font-size: 12px; }
+
+  /* Имитация поля ввода */
+  .mock-input {
+    background: var(--bg);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-family: inherit;
+    width: 200px;
+  }
+  .setup-mini-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .setup-mini-btn:hover { background: var(--primary-dark); }
+  .setup-mini-btn:disabled { background: var(--gray-300); cursor: not-allowed; }
+
+  /* Слайдер тарифа */
+  .price-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 8px;
+    align-items: end;
+  }
+  .price-item { }
+  .price-item-label { font-size: 11px; color: var(--text-tertiary); margin-bottom: 4px; }
+  .price-item-value-box {
+    background: var(--bg);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .price-item-value-box.highlight {
+    background: var(--primary-lightest);
+    border-color: var(--primary);
+    color: var(--primary-dark);
+  }
+
+  /* ============ ЭКРАН 7: СТРАТЕГИЯ ============ */
+  .strategies { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .strategy {
+    background: var(--bg-card);
+    border: 2px solid var(--gray-100);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .strategy:hover { border-color: var(--primary-light); }
+  .strategy.selected {
+    border-color: var(--primary);
+    background: var(--primary-lightest);
+  }
+  .strategy-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .strategy-name { font-weight: 700; font-size: 15px; }
+  .strategy-conv {
+    font-size: 11px;
+    background: var(--primary-lightest);
+    color: var(--primary-dark);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+  }
+  .strategy.selected .strategy-conv { background: var(--primary); color: white; }
+  .strategy-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+  /* ============ ЭКРАН 8: АНИМАЦИЯ ВЫПУСКА ============ */
+  .issue-stage {
+    text-align: center;
+    padding: 40px 24px;
+  }
+  .issue-card-anim {
+    width: 240px;
+    height: 150px;
+    margin: 0 auto 32px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-radius: 16px;
+    padding: 20px;
+    color: white;
+    text-align: left;
+    box-shadow: 0 16px 48px rgba(128, 189, 28, 0.35);
+    position: relative;
+    animation: cardAppear 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes cardAppear {
+    0% { opacity: 0; transform: translateY(40px) rotate(-6deg) scale(0.9); }
+    100% { opacity: 1; transform: translateY(0) rotate(0) scale(1); }
+  }
+  .issue-card-anim .pay-card-logo { font-size: 18px; }
+  .issue-card-anim .pay-card-num { font-size: 14px; margin-top: 32px; }
+  .issue-amount-rise {
+    font-size: 56px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+  .issue-text { color: var(--text-secondary); font-size: 15px; max-width: 480px; margin: 0 auto 24px; }
+
+  /* ============ ЭКРАН 9: ПРОГНОЗ + FOMO ============ */
+  .forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 16px 0 24px;
+  }
+  .forecast-stat {
+    background: var(--bg-card);
+    border: 1px solid var(--gray-100);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+  .forecast-stat-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .forecast-stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    margin-bottom: 4px;
+  }
+  .forecast-stat-sub {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+
+  /* FOMO блок — тёмный */
+  .fomo {
+    background: linear-gradient(135deg, var(--dark-bg) 0%, var(--dark-bg-2) 100%);
+    color: var(--dark-text);
+    border-radius: 20px;
+    padding: 32px;
+    margin: 16px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .fomo::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 80% 50%, rgba(255, 107, 107, 0.1), transparent 50%);
+    pointer-events: none;
+  }
+  .fomo-divider {
+    text-align: center;
+    color: var(--dark-text-dim);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .fomo h3 {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    position: relative; z-index: 1;
+  }
+  .fomo-warning {
+    background: rgba(255, 107, 107, 0.12);
+    border-left: 3px solid var(--accent-warning);
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin: 16px 0;
+    position: relative; z-index: 1;
+  }
+  .fomo-warning strong { color: var(--accent-warning); display: block; margin-bottom: 6px; font-size: 14px; }
+  .fomo-warning p { font-size: 13px; color: var(--dark-text-dim); margin: 0; }
+  .fomo-daily {
+    font-size: 17px;
+    color: var(--dark-text);
+  }
+  .fomo-daily strong { color: var(--gold); font-size: 24px; }
+
+  /* ============ ЭКРАН 10: CTA / Thank you ============ */
+  .cta-final {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    border-radius: 24px;
+    padding: 48px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-final::before {
+    content: "";
+    position: absolute;
+    top: -50px; left: -50px;
+    width: 200px; height: 200px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+  }
+  .cta-final::after {
+    content: "";
+    position: absolute;
+    bottom: -80px; right: -80px;
+    width: 280px; height: 280px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+  }
+  .cta-final h2 { font-size: 28px; font-weight: 800; margin-bottom: 12px; position: relative; z-index: 1; }
+  .cta-final p { font-size: 15px; opacity: 0.9; margin-bottom: 28px; max-width: 520px; margin-left: auto; margin-right: auto; position: relative; z-index: 1; }
+  .cta-final .btn {
+    background: white;
+    color: var(--primary-dark);
+    font-size: 16px;
+    padding: 16px 36px;
+    position: relative; z-index: 1;
+  }
+  .cta-final .btn:hover { background: var(--primary-lightest); transform: translateY(-2px); }
+  .cta-share {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 16px;
+    position: relative; z-index: 1;
+  }
+  .cta-share button {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .cta-share button:hover { background: rgba(255, 255, 255, 0.25); }
+
+  /* ============ TOAST уведомления ============ */
+  .toast-stack {
+    position: fixed;
+    top: 24px; right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--text);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+    min-width: 240px;
+  }
+  .toast-icon {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes toastOut {
+    to { opacity: 0; transform: translateX(40px); }
+  }
+
+  /* ============ NAVIGATION (next button bar) ============ */
+  .nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding: 16px 4px 0;
+    border-top: 1px solid var(--gray-100);
+  }
+  .step-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .step-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--gray-200);
+    transition: all 0.3s;
+  }
+  .step-dot.active { background: var(--primary); width: 24px; border-radius: 3px; }
+  .step-dot.done { background: var(--primary-light); }
+
+  /* ============ ПРЕВЬЮ КО-БРЕНДИНГОВОЙ СТРАНИЦЫ ============ */
+  .cobrand-preview {
+    background: linear-gradient(135deg, #f4faff 0%, #e8f5e9 100%);
+    border-radius: 14px;
+    padding: 24px;
+    margin-top: 16px;
+    border: 1px solid var(--primary-20);
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+  .cobrand-preview.visible { display: block; }
+  .cobrand-preview-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    font-weight: 700;
+    text-align: center;
+  }
+  .cobrand-preview-frame {
+    background: white;
+    border-radius: 12px;
+    padding: 16px 14px 14px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transform-origin: top center;
+  }
+  .cobrand-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--gray-100);
+    margin-bottom: 14px;
+  }
+  .cobrand-preview-logos {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cobrand-preview-logos > .cardclub-mini {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .cobrand-preview-logos > .cardclub-mini::before {
+    content: "";
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    position: relative;
+  }
+  .cobrand-preview-divider {
+    color: var(--gray-300);
+    font-size: 14px;
+  }
+  .partner-logo-slot {
+    width: 72px;
+    height: 26px;
+    background: var(--gray-100);
+    border: 1px dashed var(--gray-300);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .partner-logo-slot.filled {
+    background: white;
+    border: 1px solid var(--primary-20);
+    color: var(--text);
+    font-weight: 800;
+    font-size: 11px;
+    padding: 0 8px;
+    max-width: 100px;
+  }
+  .partner-logo-slot.filled img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .cobrand-preview-pay {
+    display: flex;
+    gap: 6px;
+    font-size: 9px;
+    color: var(--text-tertiary);
+  }
+  .cobrand-preview-pay span {
+    background: var(--gray-100);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .cobrand-card-mock {
+    width: 80%;
+    max-width: 220px;
+    height: 130px;
+    margin: 0 auto 12px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-radius: 12px;
+    padding: 14px;
+    color: white;
+    text-align: left;
+    box-shadow: 0 6px 16px rgba(128, 189, 28, 0.25);
+    position: relative;
+  }
+  .cobrand-card-mock-name { font-size: 13px; font-weight: 800; }
+  .cobrand-card-mock-num { font-size: 10px; opacity: 0.85; margin-top: 32px; letter-spacing: 1px; }
+  .cobrand-card-mock-meta {
+    position: absolute;
+    bottom: 10px; right: 12px;
+    font-size: 9px;
+    opacity: 0.7;
+  }
+  .cobrand-preview-title {
+    font-size: 14px;
+    font-weight: 800;
+    text-align: center;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .cobrand-preview-sub {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .cobrand-preview-cta {
+    background: var(--primary);
+    color: white;
+    text-align: center;
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .cobrand-link-real {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--primary-dark);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .cobrand-link-real:hover { text-decoration: underline; }
+
+  /* Логотип input — кнопка стилизованная */
+  .logo-upload-input { display: none; }
+  .logo-upload-label {
+    display: inline-block;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .logo-upload-label:hover { background: var(--primary-dark); }
+  .logo-name-display {
+    font-size: 12px;
+    color: var(--primary-dark);
+    margin-top: 6px;
+    font-weight: 600;
+    display: none;
+  }
+  .logo-name-display.visible { display: block; }
+
+  /* ============ MOBILE TOP HEADER (схлопывающаяся шапка) ============ */
+  .mobile-header {
+    display: none; /* показываем только на мобильном */
+    position: sticky;
+    top: 0;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--gray-100);
+    padding: 10px 16px;
+    z-index: 50;
+    align-items: center;
+    gap: 12px;
+  }
+  .mobile-avatar-wrap {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+  .mobile-avatar-progress {
+    position: absolute;
+    inset: 0;
+    transform: rotate(-90deg);
+  }
+  .mobile-avatar-bg-circle {
+    fill: none;
+    stroke: var(--gray-100);
+    stroke-width: 4;
+  }
+  .mobile-avatar-progress-circle {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 113;
+    stroke-dashoffset: 113;
+    transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .mobile-avatar-inner {
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: var(--primary-lighter);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: transform 0.3s;
+  }
+  .mobile-avatar-inner.pulse { animation: avatarPulse 0.6s ease; }
+  .mobile-stats {
+    flex: 1;
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+  }
+  .mobile-stat strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 1px;
+  }
+  .mobile-stat span { color: var(--text-tertiary); font-size: 10px; }
+  .mobile-ach-toggle {
+    background: var(--primary-lightest);
+    border: none;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  /* Сворачиваемая панель ачивок */
+  .mobile-ach-panel {
+    display: none;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--gray-100);
+    padding: 12px 16px;
+    position: sticky;
+    top: 64px;
+    z-index: 49;
+    animation: slideDown 0.25s ease;
+  }
+  .mobile-ach-panel.open { display: block; }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ BOTTOM TAB BAR (мобильный sidebar) ============ */
+  .bottom-bar {
+    display: none; /* показывается только на мобильном */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--gray-100);
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    z-index: 50;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+  }
+  .bottom-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 4px;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    border-radius: 8px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .bottom-tab .sidebar-icon { width: 22px; height: 22px; }
+  .bottom-tab.active { color: var(--primary-dark); }
+  .bottom-tab.active .sidebar-icon { color: var(--primary); }
+  .bottom-tab.disabled { opacity: 0.4; pointer-events: none; }
+  .bottom-tab span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  /* ============ MOBILE BREAKPOINTS ============ */
+  @media (max-width: 1100px) {
+    .app { grid-template-columns: 64px 1fr 280px; }
+    .sidebar-item span { display: none; }
+    .sidebar-logo span { display: none; }
+    .sidebar-item { justify-content: center; padding: 10px; }
+  }
+
+  @media (max-width: 860px) {
+    .app {
+      grid-template-columns: 1fr;
+      max-width: 100%;
+    }
+    .sidebar, .right-panel { display: none; }
+    .mobile-header { display: flex; }
+    .bottom-bar { display: flex; }
+
+    .main {
+      padding: 16px 16px 96px; /* нижний padding для bottom-bar */
+      min-height: calc(100vh - 64px);
+    }
+    .main-header { display: none; } /* мобильный header заменяет */
+
+    .hero {
+      padding: 32px 20px;
+      border-radius: 18px;
+    }
+    .hero h1 { font-size: 26px; line-height: 1.15; }
+    .hero p { font-size: 14px; margin-bottom: 24px; }
+    .hero-label { font-size: 11px; }
+    .hero-stats {
+      flex-wrap: wrap;
+      gap: 20px 16px;
+      margin-bottom: 24px;
+    }
+    .hero-stat-num { font-size: 24px; }
+    .hero-stat-label { font-size: 10px; }
+
+    .card { padding: 20px 18px; border-radius: 14px; }
+    .card h2 { font-size: 19px; }
+    .card .lead { font-size: 14px; }
+
+    /* Сетки → 1 колонка */
+    .fork-grid, .segments, .strategies, .forecast-grid {
+      grid-template-columns: 1fr;
+    }
+    .scenarios { grid-template-columns: 1fr; gap: 10px; }
+    .scenario { padding: 16px; }
+
+    /* Прокачка кабинета — крупнее под палец */
+    .setup-step {
+      grid-template-columns: 28px 1fr;
+      grid-template-rows: auto auto;
+      gap: 10px 12px;
+      padding: 14px 16px;
+    }
+    .setup-step .setup-action {
+      grid-column: 1 / -1;
+      width: 100%;
+    }
+    .setup-step .setup-action .setup-mini-btn {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+    }
+    .setup-step .mock-input { width: 100%; max-width: 100%; }
+    .setup-step .price-block {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    /* Шаг 3 — слайдер тарифа делаем шире и кнопкам — full-width */
+    #setup-3 { grid-template-columns: 28px 1fr; }
+    #setup-3 input[type="range"] { padding: 8px 0; }
+    #setup-3 input[type="range"]::-webkit-slider-thumb { width: 28px; height: 28px; }
+    #setup-3 input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; }
+
+    /* Слайдеры в целом — крупнее thumb */
+    .slider::-webkit-slider-thumb { width: 26px; height: 26px; }
+    .slider::-moz-range-thumb { width: 26px; height: 26px; }
+    .slider { height: 8px; }
+
+    /* Pay modal → fullscreen */
+    .pay-modal { padding: 0; }
+    .pay-modal-content {
+      max-width: 100%;
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 32px 24px;
+    }
+
+    /* Кнопки — крупнее */
+    .btn {
+      padding: 14px 22px;
+      font-size: 15px;
+      min-height: 48px;
+    }
+    .btn-large {
+      padding: 16px 28px;
+      font-size: 16px;
+      width: 100%;
+    }
+    .nav-bar {
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 0 0;
+    }
+    .nav-bar .btn-primary { order: 0; flex: 1; min-width: 100%; }
+    .nav-bar .btn-ghost { order: 1; flex: 0 0 auto; padding: 8px 12px; }
+    .nav-bar .step-dots { order: 2; flex: 1; justify-content: flex-end; }
+
+    /* Toast — снизу, full-width */
+    .toast-stack {
+      top: auto;
+      bottom: calc(80px + env(safe-area-inset-bottom)); /* над bottom-bar */
+      right: 12px;
+      left: 12px;
+    }
+    .toast {
+      min-width: 0;
+      width: 100%;
+      font-size: 13px;
+    }
+
+    /* Финальный CTA — компактнее */
+    .cta-final { padding: 36px 24px; }
+    .cta-final h2 { font-size: 22px; }
+    .cta-final p { font-size: 14px; }
+    .cta-final .btn { padding: 16px 24px; font-size: 15px; width: 100%; }
+    .cta-share { flex-direction: column; }
+    .cta-share button { width: 100%; }
+
+    /* Анимация выпуска — компактнее */
+    .issue-stage { padding: 24px 12px; }
+    .issue-card-anim {
+      width: 200px;
+      height: 130px;
+      padding: 16px;
+    }
+    .issue-amount-rise { font-size: 44px; }
+    .issue-text { font-size: 14px; }
+
+    /* Лайфстайл — заголовок и отступы */
+    .lifestyle { padding: 28px 20px; border-radius: 18px; }
+
+    /* FOMO — компактнее */
+    .fomo { padding: 24px 20px; }
+    .fomo h3 { font-size: 18px; }
+
+    /* Шаг "что произойдёт после" — в одну колонку */
+    .cta-final + .card > div[style*="grid-template-columns"] {
+      grid-template-columns: 1fr !important;
+    }
+
+    /* Превью ко-брендинговой страницы */
+    .cobrand-preview { padding: 16px !important; }
+    .cobrand-preview-frame { transform: scale(0.85); }
+  }
+
+  /* Маленький мобильный — урезаем ещё */
+  @media (max-width: 380px) {
+    .hero h1 { font-size: 22px; }
+    .hero-stats { gap: 16px 12px; }
+    .hero-stat-num { font-size: 20px; }
+    .card h2 { font-size: 17px; }
+    .bottom-tab span { font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ ПРИЛОЖЕНИЕ ============ -->
+<div class="app">
+
+  <!-- MOBILE HEADER (только на мобильном) -->
+  <div class="mobile-header">
+    <div class="mobile-avatar-wrap">
+      <svg class="mobile-avatar-progress" viewBox="0 0 44 44">
+        <circle class="mobile-avatar-bg-circle" cx="22" cy="22" r="18"/>
+        <circle class="mobile-avatar-progress-circle" id="mobile-avatar-progress" cx="22" cy="22" r="18"/>
+      </svg>
+      <div class="mobile-avatar-inner" id="mobile-avatar-inner">🤖</div>
+    </div>
+    <div class="mobile-stats">
+      <div class="mobile-stat">
+        <strong id="mobile-stat-cards">0</strong>
+        <span>карт</span>
+      </div>
+      <div class="mobile-stat">
+        <strong id="mobile-stat-earnings">$0</strong>
+        <span>заработок</span>
+      </div>
+    </div>
+    <button class="mobile-ach-toggle" onclick="toggleMobileAch()">
+      🏆 <span id="mobile-ach-count">0</span>/6
+    </button>
+  </div>
+
+  <!-- Сворачиваемая панель ачивок (мобильная) -->
+  <div class="mobile-ach-panel" id="mobile-ach-panel">
+    <div class="achievement" id="m-ach-1">
+      <div class="achievement-icon">🌱</div>
+      <span>Первый шаг</span>
+    </div>
+    <div class="achievement" id="m-ach-2">
+      <div class="achievement-icon">✨</div>
+      <span>Самотестер</span>
+    </div>
+    <div class="achievement" id="m-ach-3">
+      <div class="achievement-icon">🎯</div>
+      <span>Стратег</span>
+    </div>
+    <div class="achievement" id="m-ach-4">
+      <div class="achievement-icon">⚙️</div>
+      <span>Кабинет готов</span>
+    </div>
+    <div class="achievement" id="m-ach-5">
+      <div class="achievement-icon">💰</div>
+      <span>Первая комиссия</span>
+    </div>
+    <div class="achievement" id="m-ach-6">
+      <div class="achievement-icon">🚀</div>
+      <span>Партнёр Card.Club</span>
+    </div>
+  </div>
+
+  <!-- LEFT SIDEBAR — как в реальном кабинете -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-circle"></div>
+      <span>Card.Club</span>
+    </div>
+    <a class="sidebar-item active" data-section="home">
+      <svg class="sidebar-icon" viewBox="0 0 18 18" fill="none"><path d="M6.5 1H1.83C1.37 1 1 1.37 1 1.83V7.67c0 .46.37.83.83.83H6.5c.46 0 .83-.37.83-.83V1.83C7.33 1.37 6.96 1 6.5 1zM15.67 1H11c-.46 0-.83.37-.83.83v2.5c0 .46.37.83.83.83h4.67c.46 0 .83-.37.83-.83v-2.5C16.5 1.37 16.13 1 15.67 1zM15.67 8.5H11c-.46 0-.83.37-.83.83v5.84c0 .46.37.83.83.83h4.67c.46 0 .83-.37.83-.83V9.33c0-.46-.37-.83-.83-.83zM6.5 11.83H1.83c-.46 0-.83.37-.83.83v2.5c0 .46.37.83.83.83H6.5c.46 0 .83-.37.83-.83v-2.5c0-.46-.37-.83-.83-.83z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span>Главная</span>
+    </a>
+    <a class="sidebar-item" data-section="partnership">
+      <svg class="sidebar-icon" viewBox="0 0 20 20" fill="none"><path d="M9.17 14.17L10.83 15.83a2.36 2.36 0 0 0 3.34 0 2.36 2.36 0 0 0 0-3.33M11.67 11.67l2.08 2.08a2.36 2.36 0 0 0 3.34-3.33l-3.23-3.24a2.36 2.36 0 0 0-3.34 0L9.75 8.25a2.36 2.36 0 0 1-3.34 0 2.36 2.36 0 0 1 0-3.33l2.34-2.34" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Сотрудничество</span>
+    </a>
+    <a class="sidebar-item" data-section="materials">
+      <svg class="sidebar-icon" viewBox="0 0 20 20" fill="none"><path d="M8.33 10.83a4.17 4.17 0 0 0 6.28.45l2.5-2.5a4.17 4.17 0 0 0-5.89-5.89L9.79 4.32M11.67 9.17a4.17 4.17 0 0 0-6.28-.45l-2.5 2.5a4.17 4.17 0 0 0 5.89 5.89l1.43-1.43" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Материалы</span>
+    </a>
+    <a class="sidebar-item disabled" data-section="stats">
+      <svg class="sidebar-icon" viewBox="0 0 20 20" fill="none"><path d="M17.67 13.24A8.33 8.33 0 1 1 6.67 2.36M17.5 10A8.33 8.33 0 0 0 10 1.71a.83.83 0 0 0-.83.79v6.67c0 .46.37.83.83.83h6.67c.46 0 .83-.37.83-.83z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Статистика</span>
+    </a>
+    <a class="sidebar-item disabled" data-section="reward">
+      <svg class="sidebar-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.33" stroke="currentColor" stroke-width="1.6"/><path d="M10 6.67v6.67M6.67 10L10 13.33 13.33 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Вознаграждение</span>
+    </a>
+    <a class="sidebar-item disabled" data-section="feedback">
+      <svg class="sidebar-icon" viewBox="0 0 20 20" fill="none"><path d="M10 14.17h.01M10 6.67c.92 0 1.67.75 1.67 1.66 0 1.67-2.5 2.5-2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="10" r="8.33" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span>Обратная связь</span>
+    </a>
+    <a class="sidebar-item disabled" data-section="faq">
+      <svg class="sidebar-icon" viewBox="0 0 20 20" fill="none"><path d="M10.83 6.67H5.83M14.17 10H5.83M17.5 12.5c0 .92-.75 1.67-1.67 1.67H5.83L2.5 17.5V4.17c0-.92.75-1.67 1.67-1.67h11.66c.92 0 1.67.75 1.67 1.67V12.5z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>FAQ</span>
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <header class="main-header">
+      <h1 class="main-title" id="page-title">Главная</h1>
+      <div class="main-lang">
+        🇷🇺 RU
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M4 6l3.82 3.82a.25.25 0 0 0 .36 0L12 6" stroke="currentColor"/></svg>
+      </div>
+    </header>
+
+    <!-- ============ ЭКРАН 1: HERO ============ -->
+    <section class="screen active" data-screen="1">
+      <div class="hero">
+        <span class="hero-label">⚡ Интерактивный симулятор · 3 минуты</span>
+        <h1>От первого знакомства<br>до <span class="accent">первых $17.5 на счету</span></h1>
+        <p>Ты пройдёшь весь путь партнёра Card.Club: от выбора стратегии до первой выпущенной карты — и увидишь, что получится у тебя через год. Цифры — из данных действующих партнёров.</p>
+        <div class="hero-stats">
+          <div>
+            <div class="hero-stat-num">25 000+</div>
+            <div class="hero-stat-label">карт выпущено<br>за 2 месяца</div>
+          </div>
+          <div>
+            <div class="hero-stat-num">$17.5</div>
+            <div class="hero-stat-label">партнёру за каждую<br>выпущенную карту</div>
+          </div>
+          <div>
+            <div class="hero-stat-num">10 мин</div>
+            <div class="hero-stat-label">настройка кабинета<br>с нуля</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-large btn-pulse" onclick="goNext()">Начать путь →</button>
+      </div>
+    </section>
+
+    <!-- ============ ЭКРАН 2: РАЗВИЛКА ============ -->
+    <section class="screen" data-screen="2">
+      <div class="card">
+        <h2>С чего хочешь начать?</h2>
+        <p class="lead">Выбери один из двух путей. Можешь сначала почувствовать продукт как пользователь — а потом перейти к партнёрке. Или сразу к деньгам.</p>
+
+        <div class="fork-grid">
+          <div class="fork-card recommended" onclick="chooseForkPath('lifestyle')">
+            <div class="fork-icon">✨</div>
+            <h3>Сначала почувствую продукт</h3>
+            <p>Симуляция 3 живых сценариев: оплата ChatGPT, бронирование Booking, Uber в Дубае. Ощути, ради чего твои клиенты будут выпускать карту.</p>
+            <div class="fork-meta">
+              <span class="fork-tag">+90 секунд</span>
+              <span class="fork-tag">+1 ачивка</span>
+              <span class="fork-tag">Дофамин</span>
+            </div>
+          </div>
+          <div class="fork-card" onclick="chooseForkPath('partner')">
+            <div class="fork-icon">💼</div>
+            <h3>Сразу к партнёрке</h3>
+            <p>Пропускаем продуктовый блок и идём прямо в финансовую модель: какой у тебя бизнес, что заработаешь, как разогнать.</p>
+            <div class="fork-meta">
+              <span class="fork-tag">Быстрее</span>
+              <span class="fork-tag">Сразу деньги</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-ghost" onclick="goBack()">← Назад</button>
+        <div class="step-dots" id="dots"></div>
+      </div>
+    </section>
+
+    <!-- ============ ЭКРАН 3: ЛАЙФСТАЙЛ ============ -->
+    <section class="screen" data-screen="3">
+      <div class="lifestyle">
+        <h2>Почувствуй карту в действии</h2>
+        <p class="lifestyle-lead">Кликни на любой сценарий и посмотри, как карта решает реальную задачу за 5 секунд. Это то, что испытает твой клиент.</p>
+
+        <div class="scenarios" id="scenarios-grid">
+          <div class="scenario" data-scenario="chatgpt" onclick="runScenario('chatgpt')">
+            <div class="scenario-logo">🤖</div>
+            <h3>ChatGPT Plus</h3>
+            <div class="price">$20 / месяц</div>
+            <div class="desc">Платишь напрямую с карты Card.Club. Без VPN, без посредников, без отказов от российских банков.</div>
+          </div>
+          <div class="scenario" data-scenario="booking" onclick="runScenario('booking')">
+            <div class="scenario-logo">🏨</div>
+            <h3>Booking.com</h3>
+            <div class="price">$185 / отель в Стамбуле</div>
+            <div class="desc">Бронируешь отель в любой точке мира. Карта работает на сайте Booking как иностранная.</div>
+          </div>
+          <div class="scenario" data-scenario="uber" onclick="runScenario('uber')">
+            <div class="scenario-logo">🚕</div>
+            <h3>Uber в Дубае</h3>
+            <div class="price">$12 за поездку</div>
+            <div class="desc">Привязал к Apple Pay — оплачиваешь телефоном поездки и кофе в любой стране.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-ghost" onclick="goBack()">← Назад</button>
+        <div class="step-dots" id="dots3"></div>
+        <button class="btn btn-primary" id="btn-after-lifestyle" onclick="goNext()" disabled>Перейти к партнёрке →</button>
+      </div>
+    </section>
+
+    <!-- ============ ЭКРАН 4: СЕГМЕНТ ============ -->
+    <section class="screen" data-screen="4">
+      <div class="card">
+        <h2>Какой у тебя бизнес?</h2>
+        <p class="lead">От сегмента зависит размер базы, реалистичная конверсия и сценарии, которые сработают.</p>
+
+        <div class="segments">
+          <div class="segment" data-segment="tour" onclick="selectSegment('tour')">
+            <div class="segment-icon">✈️</div>
+            <div class="segment-name">Турагентство</div>
+            <div class="segment-desc">~500 клиентов в год</div>
+          </div>
+          <div class="segment" data-segment="visa" onclick="selectSegment('visa')">
+            <div class="segment-icon">🛂</div>
+            <div class="segment-name">Визовый центр</div>
+            <div class="segment-desc">~1 500 клиентов в год</div>
+          </div>
+          <div class="segment" data-segment="realty" onclick="selectSegment('realty')">
+            <div class="segment-icon">🏠</div>
+            <div class="segment-name">Недвижимость за рубежом</div>
+            <div class="segment-desc">~100 сделок в год</div>
+          </div>
+          <div class="segment" data-segment="blogger" onclick="selectSegment('blogger')">
+            <div class="segment-icon">📱</div>
+            <div class="segment-name">Блогер / медиа</div>
+            <div class="segment-desc">~30 000 подписчиков</div>
+          </div>
+          <div class="segment" data-segment="education" onclick="selectSegment('education')">
+            <div class="segment-icon">🎓</div>
+            <div class="segment-name">Образование за рубежом</div>
+            <div class="segment-desc">~300 студентов в год</div>
+          </div>
+          <div class="segment" data-segment="other" onclick="selectSegment('other')">
+            <div class="segment-icon">🌐</div>
+            <div class="segment-name">Другое</div>
+            <div class="segment-desc">Настрою сам</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-ghost" onclick="goBack()">← Назад</button>
+        <div class="step-dots" id="dots4"></div>
+        <button class="btn btn-primary" id="btn-segment-next" onclick="goNext()" disabled>Продолжить →</button>
+      </div>
+    </section>
+
+    <!-- ============ ЭКРАН 5: АНАЛИЗ АКТИВОВ ============ -->
+    <section class="screen" data-screen="5">
+      <div class="card">
+        <h2>Сколько у тебя клиентов в год?</h2>
+        <p class="lead">Цифра не обязана быть точной — это для прикидки потенциала. Уточни ползунком.</p>
+
+        <div class="asset-block">
+          <div class="asset-row">
+            <span class="asset-label">Активная клиентская база</span>
+            <span class="asset-value"><span id="asset-base">500</span> клиентов</span>
+          </div>
+          <input type="range" min="50" max="50000" step="50" value="500" class="slider" id="slider-base" oninput="updateAsset()">
+          <div class="slider-meta">
+            <span>50</span><span>10к</span><span>25к</span><span>50к</span>
+          </div>
+        </div>
+
+        <div class="tam-block">
+          <div class="tam-label">Из них реалистично выпустят карту по твоей рекомендации (~15%):</div>
+          <div class="tam-value">≈ <span id="tam-cards">75</span> карт в год</div>
+          <div class="tam-detail">Что даёт тебе <strong>$<span id="tam-revenue">1 313</span></strong> или примерно <strong>₽<span id="tam-revenue-rub">131 250</span></strong> партнёрских отчислений за год.</div>
+        </div>
+
+        <div style="margin-top:24px;padding:16px;background:var(--bg);border-radius:12px;font-size:13px;color:var(--text-secondary);">
+          <strong style="color:var(--text);">Откуда 15% конверсии?</strong> На рынке партнёрских программ для финансовых продуктов в РФ сейчас — это среднее значение для тёплой базы (т.е. клиенты, которые уже тебе доверяют). У холодной аудитории конверсия ~3%, у горячей с упаковкой в продукт — до 35%.
+        </div>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-ghost" onclick="goBack()">← Назад</button>
+        <div class="step-dots" id="dots5"></div>
+        <button class="btn btn-primary" onclick="goNext()">Настроить кабинет →</button>
+      </div>
+    </section>
+
+    <!-- ============ ЭКРАН 6: ПРОКАЧКА КАБИНЕТА ============ -->
+    <section class="screen" data-screen="6">
+      <div class="card">
+        <h2>Прокачай свой кабинет</h2>
+        <p class="lead">Это интерфейс твоего <strong>будущего реального ЛК</strong>. Заверши 5 шагов настройки — прогресс-кольцо вокруг аватарки заполнится.</p>
+
+        <div class="setup-grid">
+          <!-- Шаг 1: Логотип + превью ко-брендинговой страницы -->
+          <div class="setup-step" id="setup-1" style="grid-template-columns: 32px 1fr; align-items: start;">
+            <div class="setup-num"><span>1</span></div>
+            <div class="setup-text" style="width: 100%;">
+              <strong>Загрузи логотип (или фото)</strong>
+              <small>Будет вставлен в ко-брендинговую страницу твоих клиентов. Принимаем SVG, PNG, JPG до 10 МБ.</small>
+              <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <input type="file" id="logo-upload" class="logo-upload-input" accept=".svg,.jpg,.jpeg,.png" onchange="handleLogoUpload(event)">
+                <label for="logo-upload" class="logo-upload-label">📤 Выбрать файл</label>
+                <button class="setup-mini-btn" onclick="useDemoLogo()" style="background:transparent;color:var(--primary-dark);border:1px solid var(--primary);">Использовать демо-логотип</button>
+                <div class="logo-name-display" id="logo-name-display"></div>
+              </div>
+
+              <!-- Превью ко-брендинговой страницы -->
+              <div class="cobrand-preview" id="cobrand-preview">
+                <div class="cobrand-preview-label">↓ Так увидит её твой клиент ↓</div>
+                <div class="cobrand-preview-frame">
+                  <div class="cobrand-preview-header">
+                    <div class="cobrand-preview-logos">
+                      <div class="cardclub-mini">Card.Club</div>
+                      <span class="cobrand-preview-divider">×</span>
+                      <div class="partner-logo-slot" id="partner-logo-slot">Твой лого</div>
+                    </div>
+                    <div class="cobrand-preview-pay">
+                      <span>Apple Pay</span>
+                      <span>G Pay</span>
+                    </div>
+                  </div>
+                  <div class="cobrand-card-mock">
+                    <div class="cobrand-card-mock-name">Card.Club</div>
+                    <div class="cobrand-card-mock-num">•••• •••• •••• 7842</div>
+                    <div class="cobrand-card-mock-meta">USD · Travelling</div>
+                  </div>
+                  <div class="cobrand-preview-title">Твоя международная карта<br>уже готова</div>
+                  <div class="cobrand-preview-sub">Оплата по всему миру</div>
+                  <div class="cobrand-preview-cta">+ Пополнить карту</div>
+                </div>
+                <a class="cobrand-link-real" href="https://promo.card.club/" target="_blank" rel="noopener">
+                  Посмотреть живую страницу →
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Шаг 2: Домен -->
+          <div class="setup-step" id="setup-2">
+            <div class="setup-num"><span>2</span></div>
+            <div class="setup-text">
+              <strong>Выбери персональный домен</strong>
+              <small>Это адрес твоей ко-брендинговой страницы для клиентов</small>
+            </div>
+            <div class="setup-action">
+              <input class="mock-input" id="domain-input" placeholder="vladimir" oninput="checkDomain()">
+              <span style="font-size:13px;color:var(--text-tertiary);margin-left:4px;">.card.club</span>
+            </div>
+          </div>
+
+          <!-- Шаг 3: Тариф -->
+          <div class="setup-step" id="setup-3" style="grid-template-columns: 32px 1fr; align-items: start;">
+            <div class="setup-num"><span>3</span></div>
+            <div class="setup-text" style="width: 100%;">
+              <strong>Настрой стоимость выпуска и свою комиссию</strong>
+              <small>Двигай ползунок — клиент платит верхнюю сумму, ты получаешь 50%</small>
+              <input type="range" min="20" max="200" step="5" value="35" class="slider" id="slider-price" oninput="updatePrice()" style="margin-top:12px;">
+              <div class="price-block">
+                <div class="price-item">
+                  <div class="price-item-label">Стоимость выпуска для клиента</div>
+                  <div class="price-item-value-box">
+                    <span id="price-client">$35</span>
+                    <span style="color:var(--primary-dark);">💵</span>
+                  </div>
+                </div>
+                <div class="price-item">
+                  <div class="price-item-label">Твой бонус (50%)</div>
+                  <div class="price-item-value-box highlight">
+                    <span id="price-partner">$17.50</span>
+                    <span>💎</span>
+                  </div>
+                </div>
+              </div>
+              <button class="setup-mini-btn" id="btn-price-fix" onclick="completeSetup(3, 'Тариф зафиксирован', '💎')" style="margin-top:12px;">Зафиксировать тариф</button>
+            </div>
+          </div>
+
+          <!-- Шаг 4: Реф ссылка -->
+          <div class="setup-step" id="setup-4">
+            <div class="setup-num"><span>4</span></div>
+            <div class="setup-text">
+              <strong>Скопируй реферальную ссылку</strong>
+              <small id="ref-link-display">https://card.club?refCode=<span style="color:var(--text-tertiary);">появится после настройки домена</span></small>
+            </div>
+            <div class="setup-action">
+              <button class="setup-mini-btn" id="btn-copy-ref" onclick="completeSetup(4, 'Ссылка скопирована', '🔗')" disabled>Копировать</button>
+            </div>
+          </div>
+
+          <!-- Шаг 5: Реальные материалы Card.Club -->
+          <div class="setup-step" id="setup-5" style="grid-template-columns: 32px 1fr; align-items: start;">
+            <div class="setup-num"><span>5</span></div>
+            <div class="setup-text" style="width: 100%;">
+              <strong>Скачай реальные материалы для рассылки</strong>
+              <small>Это те же файлы, которые лежат в твоём настоящем кабинете Card.Club — только тут ты можешь их пощупать заранее.</small>
+              <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;">
+                <a class="setup-mini-btn" href="https://cross.card.club/resources/booklet.pdf" target="_blank" rel="noopener" onclick="markMaterial('booklet', this)" style="text-decoration:none;background:transparent;color:var(--primary-dark);border:1px solid var(--primary);">
+                  📄 Буклет (PDF)
+                </a>
+                <a class="setup-mini-btn" href="https://cross.card.club/resources/presentation.pdf" target="_blank" rel="noopener" onclick="markMaterial('presentation', this)" style="text-decoration:none;background:transparent;color:var(--primary-dark);border:1px solid var(--primary);">
+                  📊 Презентация (PDF)
+                </a>
+                <a class="setup-mini-btn" href="https://cross.card.club/resources/%D0%A2%D0%B5%D0%BA%D1%81%D1%82%D1%8B%20%D0%B4%D0%BB%D1%8F%20%D1%80%D0%B0%D1%81%D1%81%D1%8B%D0%BB%D0%BE%D0%BA%20CardClub.pdf" target="_blank" rel="noopener" onclick="markMaterial('texts', this)" style="text-decoration:none;background:transparent;color:var(--primary-dark);border:1px solid var(--primary);">
+                  ✍️ Тексты для рассылок (PDF)
+                </a>
+              </div>
+              <div style="margin-top:10px;font-size:11px;color:var(--text-tertiary);">
+                Достаточно скачать один — шаг засчитается.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-ghost" onclick="goBack()">← Назад</button>
+        <div class="step-dots" id="dots6"></div>
+        <button class="btn btn-primary" id="btn-setup-next" onclick="goNext()" disabled>Запустить активацию →</button>
+      </div>
+    </section>
+
+    <!-- ============ ЭКРАН 7: СТРАТЕГИЯ ============ -->
+    <section class="screen" data-screen="7">
+      <div class="card">
+        <h2>Как коснуться базы?</h2>
+        <p class="lead">У тебя <strong id="strategy-base">500</strong> клиентов в активе. Одно действие определит, сколько из них выпустят карту.</p>
+
+        <div class="strategies">
+          <div class="strategy" data-strategy="soft" onclick="selectStrategy('soft', 4)">
+            <div class="strategy-head">
+              <span class="strategy-name">💡 Мягкое касание</span>
+              <span class="strategy-conv">3–5%</span>
+            </div>
+            <div class="strategy-desc">"Ребят, есть штука для тех, кто летит за границу или платит за подписки. Кому интересно — вот ссылка."</div>
+          </div>
+          <div class="strategy" data-strategy="story" onclick="selectStrategy('story', 12)">
+            <div class="strategy-head">
+              <span class="strategy-name">📖 Через историю клиента</span>
+              <span class="strategy-conv">10–15%</span>
+            </div>
+            <div class="strategy-desc">Рассказ об ученике, который не смог оплатить ChatGPT, или о туристе, у которого не прошла карта на Booking. И как карта закрыла бы проблему.</div>
+          </div>
+          <div class="strategy recommended" data-strategy="bundle" onclick="selectStrategy('bundle', 30)">
+            <div class="strategy-head">
+              <span class="strategy-name">🎁 В пакете услуг</span>
+              <span class="strategy-conv">25–35%</span>
+            </div>
+            <div class="strategy-desc">Карта идёт бесплатно или со скидкой вместе с туром / визой / сделкой / курсом. Клиент даже не задумывается — просто получает.</div>
+          </div>
+          <div class="strategy" data-strategy="viral" onclick="selectStrategy('viral', 10)">
+            <div class="strategy-head">
+              <span class="strategy-name">🎬 Видео-обзор</span>
+              <span class="strategy-conv">8–12%</span>
+            </div>
+            <div class="strategy-desc">Снимешь короткое видео или Reels, как сам платишь картой. Органика + репосты от твоей аудитории.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-ghost" onclick="goBack()">← Назад</button>
+        <div class="step-dots" id="dots7"></div>
+        <button class="btn btn-primary" id="btn-strategy-next" onclick="goNext()" disabled>Запустить →</button>
+      </div>
+    </section>
+
+    <!-- ============ ЭКРАН 8: АНИМАЦИЯ ВЫПУСКА ============ -->
+    <section class="screen" data-screen="8">
+      <div class="card">
+        <div class="issue-stage">
+          <div class="issue-card-anim">
+            <div class="pay-card-logo">Card.Club</div>
+            <div class="pay-card-num">•••• •••• •••• 7842</div>
+            <div style="font-size:11px;opacity:0.8;margin-top:8px;">USD · TRAVELLING</div>
+          </div>
+          <div class="issue-amount-rise">+$<span id="issue-amount">0</span></div>
+          <h2 style="margin-bottom:8px;">Первая карта выпущена</h2>
+          <p class="issue-text">Один из твоих клиентов прошёл по реферальной ссылке и выпустил карту. На твой счёт зачислены <strong>$17.50</strong>. Это деньги, которые партнёры реально получают и реально выводят — на USDT, рублёвую карту или другим способом.</p>
+        </div>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-ghost" onclick="goBack()">← Назад</button>
+        <div class="step-dots" id="dots8"></div>
+        <button class="btn btn-primary" onclick="goNext()">А что через год? →</button>
+      </div>
+    </section>
+
+    <!-- ============ ЭКРАН 9: ПРОГНОЗ + FOMO ============ -->
+    <section class="screen" data-screen="9">
+      <div class="card">
+        <h2>Реалистичный прогноз твоего дохода</h2>
+        <p class="lead">С учётом твоего сегмента (<span id="seg-name">—</span>), базы (<span id="forecast-base">500</span> клиентов) и выбранной стратегии (<span id="strat-name">—</span>).</p>
+
+        <div class="forecast-grid">
+          <div class="forecast-stat">
+            <div class="forecast-stat-label">За 3 месяца</div>
+            <div class="forecast-stat-value">$<span id="f-3mo">0</span></div>
+            <div class="forecast-stat-sub">≈ ₽<span id="f-3mo-rub">0</span></div>
+          </div>
+          <div class="forecast-stat">
+            <div class="forecast-stat-label">За 6 месяцев</div>
+            <div class="forecast-stat-value">$<span id="f-6mo">0</span></div>
+            <div class="forecast-stat-sub">≈ ₽<span id="f-6mo-rub">0</span></div>
+          </div>
+          <div class="forecast-stat">
+            <div class="forecast-stat-label">За 12 месяцев</div>
+            <div class="forecast-stat-value">$<span id="f-12mo">0</span></div>
+            <div class="forecast-stat-sub">≈ ₽<span id="f-12mo-rub">0</span></div>
+          </div>
+        </div>
+
+        <div style="background:var(--bg);padding:16px 20px;border-radius:12px;font-size:13px;color:var(--text-secondary);line-height:1.6;">
+          <strong style="color:var(--text);">Откуда цифры:</strong> карт_в_год × $17.5 + рост рекуррентных перевыпусков (15% карт перевыпускаются на 2-й год) + рефералы от первых клиентов (+12% к базе на 6-м месяце). Это база, не максимум — топ-партнёры делают х2-3 от этих чисел.
+        </div>
+      </div>
+
+      <!-- FOMO -->
+      <div class="fomo">
+        <div class="fomo-divider">· · · Симуляция окончена · · ·</div>
+        <h3>А теперь главное — это не цифры на экране</h3>
+        <p style="color:var(--dark-text-dim);font-size:14px;margin-bottom:12px;">Партнёры, которые подключились 6 месяцев назад, сейчас находятся ровно там, где показано выше. Каждый месяц задержки = месяц упущенного дохода.</p>
+
+        <div class="fomo-warning">
+          <strong>⚠ Каждый день, который ты не партнёр Card.Club</strong>
+          <p>стоит тебе <span class="fomo-daily"><strong>≈ $<span id="daily-loss">10</span></strong></span> упущенного дохода. Это не манипуляция — это годовой прогноз, делённый на 365.</p>
+        </div>
+      </div>
+
+      <div class="nav-bar">
+        <button class="btn btn-ghost" onclick="goBack()">← Назад</button>
+        <div class="step-dots" id="dots9"></div>
+        <button class="btn btn-primary btn-pulse" onclick="goNext()">Сделать это реальностью →</button>
+      </div>
+    </section>
+
+    <!-- ============ ЭКРАН 10: CTA / Thank you ============ -->
+    <section class="screen" data-screen="10">
+      <div class="cta-final">
+        <h2>Готов получить свой первый $17.5?</h2>
+        <p>Напиши мне в Telegram — я открою тебе доступ к кабинету, помогу настроить ко-брендинговую страницу с твоим логотипом и пройдусь по первой рассылке вместе с тобой. 15 минут, без воды.</p>
+        <a class="btn btn-large" href="https://t.me/Vladi_andr" target="_blank" onclick="trackCta()">
+          📱 Написать @Vladi_andr
+        </a>
+        <div class="cta-share">
+          <button onclick="shareResult()">📤 Поделиться результатом</button>
+          <button onclick="restartSimulator()">🔄 Пройти заново</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:24px;">
+        <h2 style="font-size:18px;">Что произойдёт после того, как напишешь</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px;">
+          <div style="padding:16px;background:var(--primary-lightest);border-radius:12px;">
+            <div style="font-size:24px;margin-bottom:8px;">1️⃣</div>
+            <strong style="display:block;margin-bottom:6px;">Созвон 15 минут</strong>
+            <p style="font-size:13px;color:var(--text-secondary);">Покажу кабинет вживую, отвечу на твои вопросы.</p>
+          </div>
+          <div style="padding:16px;background:var(--primary-lightest);border-radius:12px;">
+            <div style="font-size:24px;margin-bottom:8px;">2️⃣</div>
+            <strong style="display:block;margin-bottom:6px;">Доступ + материалы</strong>
+            <p style="font-size:13px;color:var(--text-secondary);">Высылаю реф-ссылку, шаблоны рассылок, видео-инструкции.</p>
+          </div>
+          <div style="padding:16px;background:var(--primary-lightest);border-radius:12px;">
+            <div style="font-size:24px;margin-bottom:8px;">3️⃣</div>
+            <strong style="display:block;margin-bottom:6px;">Первая рассылка вместе</strong>
+            <p style="font-size:13px;color:var(--text-secondary);">Помогу написать первое сообщение под твою базу — чтобы пошли выпуски сразу.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- RIGHT PANEL — профиль -->
+  <aside class="right-panel">
+    <div class="user-card">
+      <div class="avatar-wrapper">
+        <svg class="avatar-progress" viewBox="0 0 120 120">
+          <circle class="avatar-bg-circle" cx="60" cy="60" r="50"/>
+          <circle class="avatar-progress-circle" id="avatar-progress" cx="60" cy="60" r="50"/>
+        </svg>
+        <div class="avatar-inner" id="avatar-inner">
+          <div class="avatar-emoji">🤖</div>
+        </div>
+      </div>
+      <div class="user-name">Ты, через 12 месяцев</div>
+      <div class="user-email" id="user-rank">Уровень STARTER</div>
+
+      <div class="user-stats">
+        <div class="user-stat">
+          <div class="user-stat-circle" id="stat-cards">0</div>
+          <div class="user-stat-label">Выпущенные<br>карты</div>
+        </div>
+        <div class="user-stat">
+          <div class="user-stat-circle" id="stat-earnings">$0</div>
+          <div class="user-stat-label">Общий<br>заработок</div>
+        </div>
+      </div>
+
+      <button class="withdraw-btn" id="withdraw-btn" disabled>Вывести средства</button>
+    </div>
+
+    <div class="achievements-card">
+      <div class="achievements-title">
+        <span>🏆 Ачивки</span>
+        <span class="ach-counter"><span id="ach-count">0</span>/6</span>
+      </div>
+      <div class="achievement" id="ach-1">
+        <div class="achievement-icon">🌱</div>
+        <span>Первый шаг — путь начат</span>
+      </div>
+      <div class="achievement" id="ach-2">
+        <div class="achievement-icon">✨</div>
+        <span>Самотестер — почувствовал продукт</span>
+      </div>
+      <div class="achievement" id="ach-3">
+        <div class="achievement-icon">🎯</div>
+        <span>Стратег — выбрал свой подход</span>
+      </div>
+      <div class="achievement" id="ach-4">
+        <div class="achievement-icon">⚙️</div>
+        <span>Кабинет готов — все 5 шагов</span>
+      </div>
+      <div class="achievement" id="ach-5">
+        <div class="achievement-icon">💰</div>
+        <span>Первая комиссия зачислена</span>
+      </div>
+      <div class="achievement" id="ach-6">
+        <div class="achievement-icon">🚀</div>
+        <span>Партнёр Card.Club — путь пройден</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- BOTTOM TAB BAR (только на мобильном) -->
+  <nav class="bottom-bar">
+    <a class="bottom-tab active" data-section-mobile="home">
+      <svg class="sidebar-icon" viewBox="0 0 18 18" fill="none"><path d="M6.5 1H1.83C1.37 1 1 1.37 1 1.83V7.67c0 .46.37.83.83.83H6.5c.46 0 .83-.37.83-.83V1.83C7.33 1.37 6.96 1 6.5 1zM15.67 1H11c-.46 0-.83.37-.83.83v2.5c0 .46.37.83.83.83h4.67c.46 0 .83-.37.83-.83v-2.5C16.5 1.37 16.13 1 15.67 1zM15.67 8.5H11c-.46 0-.83.37-.83.83v5.84c0 .46.37.83.83.83h4.67c.46 0 .83-.37.83-.83V9.33c0-.46-.37-.83-.83-.83zM6.5 11.83H1.83c-.46 0-.83.37-.83.83v2.5c0 .46.37.83.83.83H6.5c.46 0 .83-.37.83-.83v-2.5c0-.46-.37-.83-.83-.83z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span>Главная</span>
+    </a>
+    <a class="bottom-tab" data-section-mobile="partnership">
+      <svg class="sidebar-icon" viewBox="0 0 20 20" fill="none"><path d="M9.17 14.17L10.83 15.83a2.36 2.36 0 0 0 3.34 0 2.36 2.36 0 0 0 0-3.33M11.67 11.67l2.08 2.08a2.36 2.36 0 0 0 3.34-3.33l-3.23-3.24a2.36 2.36 0 0 0-3.34 0L9.75 8.25a2.36 2.36 0 0 1-3.34 0 2.36 2.36 0 0 1 0-3.33l2.34-2.34" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Партнёрка</span>
+    </a>
+    <a class="bottom-tab" data-section-mobile="materials">
+      <svg class="sidebar-icon" viewBox="0 0 20 20" fill="none"><path d="M8.33 10.83a4.17 4.17 0 0 0 6.28.45l2.5-2.5a4.17 4.17 0 0 0-5.89-5.89L9.79 4.32M11.67 9.17a4.17 4.17 0 0 0-6.28-.45l-2.5 2.5a4.17 4.17 0 0 0 5.89 5.89l1.43-1.43" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Материалы</span>
+    </a>
+    <a class="bottom-tab disabled">
+      <svg class="sidebar-icon" viewBox="0 0 20 20" fill="none"><path d="M17.67 13.24A8.33 8.33 0 1 1 6.67 2.36" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span>Статистика</span>
+    </a>
+    <a class="bottom-tab disabled">
+      <svg class="sidebar-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.33" stroke="currentColor" stroke-width="1.6"/><path d="M10 6.67v6.67M6.67 10L10 13.33 13.33 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Доход</span>
+    </a>
+  </nav>
+
+</div>
+
+<!-- ============ TOAST ============ -->
+<div class="toast-stack" id="toast-stack"></div>
+
+<!-- ============ PAY MODAL (для лайфстайл-сценариев) ============ -->
+<div class="pay-modal" id="pay-modal">
+  <div class="pay-modal-content">
+    <div class="pay-card-visual">
+      <div class="pay-card-logo">Card.Club</div>
+      <div class="pay-card-num">•••• •••• •••• 7842</div>
+    </div>
+    <div class="pay-status" id="pay-status">Обработка платежа...</div>
+    <div class="pay-amount" id="pay-amount">$0</div>
+    <div class="pay-merchant" id="pay-merchant">—</div>
+    <div class="pay-progress"><div class="pay-progress-fill" id="pay-progress-fill"></div></div>
+    <div class="pay-success" id="pay-success">✓ Платёж прошёл. Сервис активирован.</div>
+  </div>
+</div>
+
+<script>
+/* ============ STATE ============ */
+const state = {
+  screen: 1,
+  totalScreens: 10,
+  forkPath: null,           // 'lifestyle' | 'partner'
+  scenariosCompleted: 0,
+  segment: null,
+  base: 500,
+  setupCompleted: 0,
+  domainSet: false,
+  priceCard: 35,
+  pricePartner: 17.5,
+  strategy: null,
+  conversion: 0,
+  achievements: 0,
+  earnings: 0,
+  cards: 0,
+  history: [],              // для goBack()
+};
+
+/* Маппинги */
+const SEGMENT_BASE = {
+  tour: 500, visa: 1500, realty: 100, blogger: 30000, education: 300, other: 500
+};
+const SEGMENT_LABEL = {
+  tour: 'Турагентство', visa: 'Визовый центр', realty: 'Недвижимость',
+  blogger: 'Блогер', education: 'Образование', other: 'Свой сегмент'
+};
+const STRATEGY_LABEL = {
+  soft: 'Мягкое касание', story: 'Через историю',
+  bundle: 'В пакете услуг', viral: 'Видео-обзор'
+};
+
+/* ============ NAVIGATION ============ */
+function goNext() {
+  // Особое правило: если выбран path 'partner' → пропускаем экран 3
+  if (state.screen === 2 && state.forkPath === 'partner') {
+    state.history.push(state.screen);
+    state.screen = 4;
+    showScreen(4);
+    return;
+  }
+  // Особое правило: после экрана 9 (FOMO) — на 10
+  if (state.screen >= state.totalScreens) return;
+  state.history.push(state.screen);
+  state.screen++;
+  showScreen(state.screen);
+
+  // На экране 9 — пересчитать прогноз
+  if (state.screen === 9) renderForecast();
+  // На экране 8 — запустить анимацию суммы
+  if (state.screen === 8) animateIssue();
+  // На экране 7 — обновить базу клиентов в тексте
+  if (state.screen === 7) {
+    document.getElementById('strategy-base').textContent = state.base.toLocaleString('ru-RU');
+  }
+}
+
+function goBack() {
+  if (state.history.length === 0) return;
+  state.screen = state.history.pop();
+  showScreen(state.screen);
+}
+
+function showScreen(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.querySelector(`[data-screen="${n}"]`);
+  if (target) target.classList.add('active');
+
+  // Скролл наверх
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Подсветка sidebar
+  updateSidebarHighlight(n);
+  updatePageTitle(n);
+  updateAllDots();
+}
+
+function updateSidebarHighlight(n) {
+  const sidebarMap = { 1: 'home', 2: 'home', 3: 'home', 4: 'home', 5: 'home',
+                       6: 'materials', 7: 'partnership', 8: 'partnership',
+                       9: 'partnership', 10: 'home' };
+  const section = sidebarMap[n] || 'home';
+
+  // Десктоп sidebar
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  document.querySelector(`[data-section="${section}"]`)?.classList.add('active');
+
+  // Мобильный bottom-tab
+  document.querySelectorAll('.bottom-tab').forEach(i => i.classList.remove('active'));
+  document.querySelector(`[data-section-mobile="${section}"]`)?.classList.add('active');
+}
+
+function updatePageTitle(n) {
+  const titles = {
+    1: 'Главная', 2: 'Главная', 3: 'Демо продукта',
+    4: 'Сегмент', 5: 'Анализ базы', 6: 'Материалы',
+    7: 'Сотрудничество', 8: 'Сотрудничество',
+    9: 'Прогноз', 10: 'Активация'
+  };
+  document.getElementById('page-title').textContent = titles[n] || 'Card.Club';
+}
+
+function updateAllDots() {
+  for (let i = 2; i <= 9; i++) {
+    const container = document.getElementById('dots' + i);
+    if (!container) continue;
+    container.innerHTML = '';
+    for (let j = 1; j <= state.totalScreens; j++) {
+      const d = document.createElement('div');
+      d.className = 'step-dot';
+      if (j < state.screen) d.classList.add('done');
+      if (j === state.screen) d.classList.add('active');
+      container.appendChild(d);
+    }
+  }
+}
+
+/* ============ ACHIEVEMENTS ============ */
+function unlockAch(n, label) {
+  const el = document.getElementById('ach-' + n);
+  if (!el || el.classList.contains('unlocked')) return;
+  el.classList.add('unlocked');
+  // Дублируем на мобильную панель
+  const mEl = document.getElementById('m-ach-' + n);
+  if (mEl) mEl.classList.add('unlocked');
+
+  state.achievements++;
+  document.getElementById('ach-count').textContent = state.achievements;
+  const mCount = document.getElementById('mobile-ach-count');
+  if (mCount) mCount.textContent = state.achievements;
+
+  pulseAvatar();
+  toast(label, '🏆');
+}
+
+function pulseAvatar() {
+  // Десктоп
+  const av = document.getElementById('avatar-inner');
+  if (av) {
+    av.classList.remove('pulse');
+    void av.offsetWidth;
+    av.classList.add('pulse');
+  }
+  // Мобильный
+  const mav = document.getElementById('mobile-avatar-inner');
+  if (mav) {
+    mav.classList.remove('pulse');
+    void mav.offsetWidth;
+    mav.classList.add('pulse');
+  }
+
+  // Прогресс-кольцо: каждая ачивка = 1/6 круга
+  const ratio = state.achievements / 6;
+  // Десктоп: circumference 2π·50 ≈ 314
+  const desktopOffset = 314 - (314 * ratio);
+  const desktopRing = document.getElementById('avatar-progress');
+  if (desktopRing) desktopRing.style.strokeDashoffset = desktopOffset;
+  // Мобильный: circumference 2π·18 ≈ 113
+  const mobileOffset = 113 - (113 * ratio);
+  const mobileRing = document.getElementById('mobile-avatar-progress');
+  if (mobileRing) mobileRing.style.strokeDashoffset = mobileOffset;
+}
+
+/* Сворачивание панели ачивок на мобильном */
+function toggleMobileAch() {
+  document.getElementById('mobile-ach-panel').classList.toggle('open');
+}
+
+/* ============ TOAST ============ */
+function toast(text, icon = '✓') {
+  const stack = document.getElementById('toast-stack');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<div class="toast-icon">${icon}</div><span>${text}</span>`;
+  stack.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+/* ============ ЭКРАН 1: HERO ============ */
+// При первом goNext — даём ачивку №1
+const origGoNext = goNext;
+let firstNext = true;
+goNext = function() {
+  if (firstNext) {
+    unlockAch(1, 'Ачивка: Первый шаг');
+    firstNext = false;
+  }
+  origGoNext();
+};
+
+/* ============ ЭКРАН 2: РАЗВИЛКА ============ */
+function chooseForkPath(path) {
+  state.forkPath = path;
+  if (path === 'lifestyle') {
+    toast('Идём смотреть продукт →', '✨');
+  } else {
+    toast('Прыгаем к деньгам', '⚡');
+  }
+  setTimeout(goNext, 300);
+}
+
+/* ============ ЭКРАН 3: ЛАЙФСТАЙЛ-СЦЕНАРИИ ============ */
+const SCENARIOS = {
+  chatgpt: { amount: '$20.00', merchant: 'OpenAI Inc · ChatGPT Plus', dur: 1400 },
+  booking: { amount: '$185.00', merchant: 'Booking.com · Hotel Sultanahmet, Istanbul', dur: 1600 },
+  uber:    { amount: '$12.40', merchant: 'Uber · Dubai Marina → DXB Airport', dur: 1300 }
+};
+
+function runScenario(key) {
+  const s = SCENARIOS[key];
+  const card = document.querySelector(`[data-scenario="${key}"]`);
+  if (card.classList.contains('completed')) return;
+
+  // Открываем модалку
+  const modal = document.getElementById('pay-modal');
+  document.getElementById('pay-amount').textContent = s.amount;
+  document.getElementById('pay-merchant').textContent = s.merchant;
+  document.getElementById('pay-status').textContent = 'Обработка платежа...';
+  document.getElementById('pay-success').classList.remove('visible');
+  document.getElementById('pay-progress-fill').style.width = '0%';
+  modal.classList.add('active');
+
+  // Прогресс
+  setTimeout(() => {
+    document.getElementById('pay-progress-fill').style.width = '100%';
+  }, 100);
+
+  // Успех
+  setTimeout(() => {
+    document.getElementById('pay-status').textContent = 'Готово';
+    document.getElementById('pay-success').classList.add('visible');
+    card.classList.add('completed');
+    state.scenariosCompleted++;
+    if (state.scenariosCompleted === 1) {
+      unlockAch(2, 'Ачивка: Самотестер');
+    }
+    if (state.scenariosCompleted >= 1) {
+      document.getElementById('btn-after-lifestyle').disabled = false;
+    }
+  }, s.dur);
+
+  // Закрытие модалки
+  setTimeout(() => modal.classList.remove('active'), s.dur + 1400);
+}
+
+/* ============ ЭКРАН 4: СЕГМЕНТ ============ */
+function selectSegment(seg) {
+  state.segment = seg;
+  state.base = SEGMENT_BASE[seg];
+  document.querySelectorAll('.segment').forEach(s => s.classList.remove('selected'));
+  document.querySelector(`[data-segment="${seg}"]`).classList.add('selected');
+  document.getElementById('btn-segment-next').disabled = false;
+  toast(`Сегмент: ${SEGMENT_LABEL[seg]}`, '🎯');
+
+  // Обновим слайдер и пересчитаем активы (если уже были на экране 5)
+  setTimeout(() => {
+    const slider = document.getElementById('slider-base');
+    if (slider) {
+      slider.value = state.base;
+      updateAsset();
+    }
+  }, 100);
+}
+
+/* ============ ЭКРАН 5: АКТИВЫ ============ */
+function updateAsset() {
+  const v = parseInt(document.getElementById('slider-base').value);
+  state.base = v;
+  document.getElementById('asset-base').textContent = v.toLocaleString('ru-RU');
+  const cards = Math.round(v * 0.15);
+  const revenue = cards * 17.5;
+  const revenueRub = Math.round(revenue * 100); // курс ~100₽/$
+  document.getElementById('tam-cards').textContent = cards.toLocaleString('ru-RU');
+  document.getElementById('tam-revenue').textContent = revenue.toLocaleString('ru-RU');
+  document.getElementById('tam-revenue-rub').textContent = revenueRub.toLocaleString('ru-RU');
+}
+
+/* ============ ЭКРАН 6: ПРОКАЧКА КАБИНЕТА ============ */
+function completeSetup(stepNum, message, icon) {
+  const step = document.getElementById('setup-' + stepNum);
+  if (step.classList.contains('completed')) return;
+
+  step.classList.add('completed');
+
+  // Скрыть кнопку завершения
+  const btn = step.querySelector('.setup-mini-btn');
+  if (btn) btn.style.display = 'none';
+
+  state.setupCompleted++;
+  toast(message, icon);
+
+  // Прогресс кольца — на этом экране заполняется по 1/6 за шаг
+  pulseAvatar();
+  // Дополнительно: после каждого шага кольцо растёт — но мы уже считаем через ачивки.
+  // Поэтому добавим спец логику для 6-го экрана: растёт пропорционально + спец прыжок при 5/5.
+
+  if (state.setupCompleted === 5) {
+    unlockAch(4, 'Кабинет готов');
+    document.getElementById('btn-setup-next').disabled = false;
+  }
+
+  // Если вводили домен — генерим реф ссылку
+  if (stepNum === 2) {
+    const dom = document.getElementById('domain-input').value.trim() || 'partner';
+    const refCode = (dom.toLowerCase().replace(/[^a-z0-9]/g, '') + Math.random().toString(36).slice(2, 8)).slice(0, 10);
+    document.getElementById('ref-link-display').innerHTML =
+      `https://card.club?refCode=<strong style="color:var(--primary-dark);">${refCode}</strong>`;
+    document.getElementById('btn-copy-ref').disabled = false;
+    state.domainSet = true;
+  }
+}
+
+function checkDomain() {
+  const v = document.getElementById('domain-input').value.trim();
+  if (v.length >= 3 && !state.domainSet) {
+    completeSetup(2, 'Домен закреплён: ' + v + '.card.club', '🌐');
+  }
+}
+
+function updatePrice() {
+  const v = parseInt(document.getElementById('slider-price').value);
+  state.priceCard = v;
+  state.pricePartner = v / 2;
+  document.getElementById('price-client').textContent = '$' + v;
+  document.getElementById('price-partner').textContent = '$' + state.pricePartner.toFixed(2);
+}
+
+/* ============ ШАГ 1: ЛОГОТИП + ПРЕВЬЮ ============ */
+function handleLogoUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Проверка размера
+  if (file.size > 10 * 1024 * 1024) {
+    toast('Файл больше 10 МБ — не загружаем', '⚠️');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    showLogoInPreview(evt.target.result, file.name);
+    document.getElementById('logo-name-display').textContent = '✓ ' + file.name;
+    document.getElementById('logo-name-display').classList.add('visible');
+    if (!document.getElementById('setup-1').classList.contains('completed')) {
+      completeSetup(1, 'Логотип загружен — посмотри превью', '🖼️');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function useDemoLogo() {
+  // Демо-лого: SVG с инициалами (как в твоём кабинете — у тебя там фотка)
+  const demoSvg = `data:image/svg+xml,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 30">
+      <rect width="100" height="30" rx="4" fill="#2D3748"/>
+      <text x="50" y="20" text-anchor="middle" fill="#80BD1C" font-family="Arial Black, sans-serif" font-size="14" font-weight="900">VLADI</text>
+    </svg>
+  `)}`;
+  showLogoInPreview(demoSvg, 'demo_logo.svg');
+  document.getElementById('logo-name-display').textContent = '✓ Используется демо-логотип';
+  document.getElementById('logo-name-display').classList.add('visible');
+  if (!document.getElementById('setup-1').classList.contains('completed')) {
+    completeSetup(1, 'Демо-лого подставлен в превью', '🖼️');
+  }
+}
+
+function showLogoInPreview(src, alt) {
+  const slot = document.getElementById('partner-logo-slot');
+  slot.classList.add('filled');
+  slot.innerHTML = `<img src="${src}" alt="${alt}">`;
+  document.getElementById('cobrand-preview').classList.add('visible');
+}
+
+/* ============ ШАГ 5: ОТМЕТКА СКАЧАННЫХ МАТЕРИАЛОВ ============ */
+function markMaterial(type, btn) {
+  // Подсветка скачанного материала
+  btn.style.background = 'var(--primary)';
+  btn.style.color = 'white';
+  btn.innerHTML = '✓ ' + btn.innerHTML.replace(/^[^\s]+\s/, '').replace(/^\s*✓\s*/, '');
+
+  if (!document.getElementById('setup-5').classList.contains('completed')) {
+    const labels = {
+      booklet: 'Буклет в твоём арсенале',
+      presentation: 'Презентация скачана',
+      texts: 'Тексты для рассылок готовы'
+    };
+    completeSetup(5, labels[type] || 'Материал скачан', '📄');
+  }
+}
+
+/* ============ ЭКРАН 7: СТРАТЕГИЯ ============ */
+function selectStrategy(strat, conv) {
+  state.strategy = strat;
+  state.conversion = conv;
+  document.querySelectorAll('.strategy').forEach(s => s.classList.remove('selected'));
+  document.querySelector(`[data-strategy="${strat}"]`).classList.add('selected');
+  document.getElementById('btn-strategy-next').disabled = false;
+  unlockAch(3, 'Ачивка: Стратег');
+  toast(`Стратегия: ${STRATEGY_LABEL[strat]} (${conv}% конверсии)`, '🎯');
+}
+
+/* ============ ЭКРАН 8: АНИМАЦИЯ ВЫПУСКА ============ */
+function animateIssue() {
+  // Сброс
+  document.getElementById('issue-amount').textContent = '0';
+
+  // Анимация суммы 0 → 17.5
+  let cur = 0;
+  const target = state.pricePartner;
+  const interval = setInterval(() => {
+    cur += target / 30;
+    if (cur >= target) {
+      cur = target;
+      clearInterval(interval);
+    }
+    document.getElementById('issue-amount').textContent = cur.toFixed(2);
+  }, 30);
+
+  // Обновляем правую панель (профиль)
+  setTimeout(() => {
+    state.cards = 1;
+    state.earnings = state.pricePartner;
+    bumpStat('stat-cards', '1');
+    bumpStat('stat-earnings', '$' + state.pricePartner.toFixed(2));
+    document.getElementById('withdraw-btn').disabled = false;
+    unlockAch(5, 'Первая комиссия зачислена');
+    document.getElementById('user-rank').textContent = 'Уровень STARTER';
+  }, 800);
+}
+
+function bumpStat(id, val) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.textContent = val;
+    el.classList.remove('bumped');
+    void el.offsetWidth;
+    el.classList.add('bumped');
+  }
+  // Синхронизация с мобильной шапкой
+  const mobileMap = {
+    'stat-cards': 'mobile-stat-cards',
+    'stat-earnings': 'mobile-stat-earnings'
+  };
+  if (mobileMap[id]) {
+    const mEl = document.getElementById(mobileMap[id]);
+    if (mEl) mEl.textContent = val;
+  }
+}
+
+/* ============ ЭКРАН 9: ПРОГНОЗ ============ */
+function renderForecast() {
+  const cardsPerYear = Math.round(state.base * (state.conversion / 100));
+  // С учётом перевыпусков (+15% на 2-й год — но мы считаем 12 мес) и реф-эффекта
+  const cards3 = Math.round(cardsPerYear * 0.22);   // первые 3 мес — наращивание
+  const cards6 = Math.round(cardsPerYear * 0.50);
+  const cards12 = Math.round(cardsPerYear * 1.12);  // +12% от рефералов
+
+  const r3 = cards3 * state.pricePartner;
+  const r6 = cards6 * state.pricePartner;
+  const r12 = cards12 * state.pricePartner;
+
+  document.getElementById('f-3mo').textContent = Math.round(r3).toLocaleString('ru-RU');
+  document.getElementById('f-6mo').textContent = Math.round(r6).toLocaleString('ru-RU');
+  document.getElementById('f-12mo').textContent = Math.round(r12).toLocaleString('ru-RU');
+  document.getElementById('f-3mo-rub').textContent = Math.round(r3 * 100).toLocaleString('ru-RU');
+  document.getElementById('f-6mo-rub').textContent = Math.round(r6 * 100).toLocaleString('ru-RU');
+  document.getElementById('f-12mo-rub').textContent = Math.round(r12 * 100).toLocaleString('ru-RU');
+
+  // Daily loss
+  const daily = Math.round(r12 / 365);
+  document.getElementById('daily-loss').textContent = daily;
+
+  // Метаданные
+  document.getElementById('seg-name').textContent = SEGMENT_LABEL[state.segment] || '—';
+  document.getElementById('forecast-base').textContent = state.base.toLocaleString('ru-RU');
+  document.getElementById('strat-name').textContent = STRATEGY_LABEL[state.strategy] || '—';
+
+  // Обновляем правую панель — потенциальные цифры за 12 мес
+  setTimeout(() => {
+    bumpStat('stat-cards', cards12.toString());
+    bumpStat('stat-earnings', '$' + Math.round(r12).toLocaleString('ru-RU'));
+    // Ранг
+    let rank = 'STARTER';
+    if (cards12 > 30) rank = 'PRO';
+    if (cards12 > 100) rank = 'EXPERT';
+    if (cards12 > 300) rank = 'ELITE';
+    document.getElementById('user-rank').textContent = `Уровень ${rank} (прогноз)`;
+  }, 600);
+}
+
+/* ============ ЭКРАН 10: CTA ============ */
+function trackCta() {
+  unlockAch(6, 'Партнёр Card.Club!');
+  // Можно добавить аналитику
+}
+
+function shareResult() {
+  const cardsPerYear = Math.round(state.base * (state.conversion / 100) * 1.12);
+  const revenue = Math.round(cardsPerYear * state.pricePartner);
+  const text = `Прошёл симулятор партнёра Card.Club. Потенциал — $${revenue.toLocaleString('ru-RU')} в год за рекомендации международных карт. Попробовать: [URL твоей страницы]`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => toast('Текст скопирован — вставь в чат', '📤'));
+  } else {
+    alert(text);
+  }
+}
+
+function restartSimulator() {
+  if (!confirm('Пройти заново? Прогресс сбросится.')) return;
+  location.reload();
+}
+
+/* ============ ИНИЦИАЛИЗАЦИЯ ============ */
+document.addEventListener('DOMContentLoaded', () => {
+  updateAllDots();
+  // На экране 5 — синхронизировать значение из state.base
+  // (если человек выбрал сегмент → вернулся → опять на 5)
+});
+</script>
+
+</body>
+</html>
